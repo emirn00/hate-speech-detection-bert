@@ -1,0 +1,48 @@
+<div class="container">
+  <header>
+    <h1>Hate Speech Detection</h1>
+    <p>Classify social media text using BERT & Traditional ML</p>
+  </header>
+
+  <main>
+    <div class="input-card">
+      <textarea 
+        [(ngModel)]="inputText" 
+        placeholder="Enter text to analyze... (e.g., 'I really like this book' or something offensive to test)"
+        rows="4"
+      ></textarea>
+      
+      <button (click)="predict()" [disabled]="loading || !inputText.trim()">
+        <span *ngIf="!loading">Analyze Text</span>
+        <span *ngIf="loading">Processing...</span>
+      </button>
+    </div>
+
+    <div class="error-message" *ngIf="error">
+      {{ error }}
+    </div>
+
+    <div class="result-card" *ngIf="result" [ngClass]="result.prediction.toLowerCase().replace(' ', '-')">
+      <h3>Analysis Result</h3>
+      
+      <div class="prediction">
+        <span class="label">Classification:</span>
+        <span class="value">{{ result.prediction }}</span>
+      </div>
+
+      <div class="confidence">
+        <span class="label">Confidence:</span>
+        <span class="value">{{ (result.confidence * 100).toFixed(2) }}%</span>
+      </div>
+
+      <div class="model">
+        <span class="label">Model:</span>
+        <span class="value">{{ result.model_used }}</span>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Labels: 0 → Hate Speech | 1 → Offensive Language | 2 → Neutral</p>
+  </footer>
+</div>
