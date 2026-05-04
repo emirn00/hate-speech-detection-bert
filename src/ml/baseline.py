@@ -51,7 +51,10 @@ def train_baseline(data_dir='data', models_dir='models'):
     print(f"Baseline model and vectorizer saved to {models_dir}/")
 
 if __name__ == "__main__":
+    # Path detection for local vs notebook execution
     if os.path.exists('data/train.csv'):
         train_baseline()
+    elif os.path.exists('../data/train.csv'):
+        train_baseline(data_dir='../data', models_dir='../models')
     else:
         print("Error: train.csv not found. Please run preprocessing.py first.")

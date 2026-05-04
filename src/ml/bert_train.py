@@ -38,10 +38,13 @@ class HateSpeechDataset(Dataset):
             'labels': torch.tensor(label, dtype=torch.long)
         }
 
-def train_epoch(model, data_loader, optimizer, device, scheduler, n_examples):
+def train_epoch(model, data_loader, optimizer, device, scheduler, n_examples, class_weights=None):
     model = model.train()
     losses = []
     correct_predictions = 0
+
+    # Loss function with weights if provided
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights) if class_weights is not None else torch.nn.CrossEntropyLoss()
 
     for d in tqdm(data_loader):
         input_ids = d["input_ids"].to(device)
@@ -50,12 +53,11 @@ def train_epoch(model, data_loader, optimizer, device, scheduler, n_examples):
 
         outputs = model(
             input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels
+            attention_mask=attention_mask
         )
 
-        loss = outputs.loss
         logits = outputs.logits
+        loss = criterion(logits, labels)
 
         _, preds = torch.max(logits, dim=1)
         correct_predictions += torch.sum(preds == labels)
@@ -116,8 +118,8 @@ def run_training(data_dir='data', models_dir='models'):
         train_path = os.path.join(data_dir, 'train.csv')
         val_path = os.path.join(data_dir, 'val.csv')
 
-    train_df = pd.read_csv(train_path).sample(n=2000, random_state=42) 
-    val_df = pd.read_csv(val_path).sample(n=500, random_state=42)
+    train_df = pd.read_csv(train_path)
+    val_df = pd.read_csv(val_path)
     
     tokenizer = BertTokenizer.from_checkpoint(MODEL_NAME) if hasattr(BertTokenizer, 'from_checkpoint') else BertTokenizer.from_pretrained(MODEL_NAME)
     
@@ -130,6 +132,15 @@ def run_training(data_dir='data', models_dir='models'):
     model = BertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=3)
     model = model.to(device)
 
+    # Calculate Class Weights to handle imbalance
+    # Labels: 0: Hate, 1: Offensive, 2: Neutral
+    # We give more weight to the minority class (Hate Speech)
+    class_counts = train_df['label'].value_counts().sort_index().values
+    weights = 1.0 / class_counts
+    weights = weights / weights.sum() * 3 # Normalize
+    class_weights = torch.tensor(weights, dtype=torch.float).to(device)
+    print(f"Calculated Class Weights: {weights}")
+
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, correct_bias=False)
     total_steps = len(train_loader) * EPOCHS
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
@@ -138,7 +149,7 @@ def run_training(data_dir='data', models_dir='models'):
 
     for epoch in range(EPOCHS):
         print(f"Epoch {epoch + 1}/{EPOCHS}")
-        train_acc, train_loss = train_epoch(model, train_loader, optimizer, device, scheduler, len(train_df))
+        train_acc, train_loss = train_epoch(model, train_loader, optimizer, device, scheduler, len(train_df), class_weights=class_weights)
         print(f"Train loss {train_loss} accuracy {train_acc}")
 
         val_acc, val_loss = eval_model(model, val_loader, device, len(val_df))
@@ -155,4 +166,9 @@ def run_training(data_dir='data', models_dir='models'):
     print("Training complete. Best Val Accuracy:", best_accuracy)
 
 if __name__ == "__main__":
-    run_training()
+    if os.path.exists('data/train.csv'):
+        run_training()
+    elif os.path.exists('../data/train.csv'):
+        run_training(data_dir='../data', models_dir='../models')
+    else:
+        print("Error: train.csv not found.")

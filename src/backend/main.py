@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
@@ -8,21 +9,44 @@ import re
 
 app = FastAPI(title="Hate Speech Detection API")
 
-# Load Baseline Model for fallback or comparison
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Tüm originlere izin verir (Geliştirme için uygundur)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Proje kök dizinini bul (src/backend/main.py -> project_root)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MODELS_DIR = os.path.join(BASE_DIR, 'models')
+
+# Load Baseline Model
 try:
-    baseline_model = joblib.load('models/baseline_model.pkl')
-    tfidf_vectorizer = joblib.load('models/tfidf_vectorizer.pkl')
-except:
+    baseline_model_path = os.path.join(MODELS_DIR, 'baseline_model.pkl')
+    tfidf_path = os.path.join(MODELS_DIR, 'tfidf_vectorizer.pkl')
+    baseline_model = joblib.load(baseline_model_path)
+    tfidf_vectorizer = joblib.load(tfidf_path)
+    print("Baseline model loaded successfully.")
+except Exception as e:
+    print(f"Baseline model not found: {e}")
     baseline_model = None
     tfidf_vectorizer = None
 
 # Load BERT Model
-MODEL_PATH = 'models/bert_hate_speech'
-if os.path.exists(MODEL_PATH):
-    tokenizer = BertTokenizer.from_pretrained(MODEL_PATH)
-    bert_model = BertForSequenceClassification.from_pretrained(MODEL_PATH)
-    bert_model.eval()
+BERT_MODEL_PATH = os.path.join(MODELS_DIR, 'bert_hate_speech')
+if os.path.exists(BERT_MODEL_PATH):
+    try:
+        tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_PATH)
+        bert_model = BertForSequenceClassification.from_pretrained(BERT_MODEL_PATH)
+        bert_model.eval()
+        print("BERT model loaded successfully.")
+    except Exception as e:
+        print(f"Error loading BERT: {e}")
+        bert_model = tokenizer = None
 else:
+    print("BERT model directory not found.")
     tokenizer = None
     bert_model = None
 
