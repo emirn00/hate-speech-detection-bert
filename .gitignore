@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data & Models (IMPORTANT)
+data/*.csv
+models/
+!models/.gitkeep
+
+# Node / Frontend
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/.angular/
+.npm
+.eslintcache
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
