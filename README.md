@@ -5,15 +5,8 @@ This repository contains a full-stack application designed to detect and classif
 ## Key Features
 - Transformer Architecture: Fine-tuned bert-base-uncased with custom classification heads.
 - Robust Preprocessing: Custom pipeline for cleaning social media noise (mentions, URLs, punctuation).
-- Imbalance Handling: Implemented class-weighting strategy to handle minority class detection in the dataset.
+- Imbalance Handling: Implemented class-weighting strategy to handle minority class detection.
 - Full-Stack Demo: FastAPI backend for real-time inference and an Angular-based UI for demonstration.
-- Baseline Comparison: Includes a TF-IDF + Logistic Regression comparison for performance validation.
-
-## Technology Stack
-- Model Training: PyTorch, Transformers (HuggingFace), Scikit-Learn
-- Backend: FastAPI, Uvicorn
-- Frontend: Angular 17+
-- Data Analysis: Pandas, Numpy, Matplotlib, Seaborn
 
 ## Project Structure
 ```text
@@ -27,57 +20,58 @@ This repository contains a full-stack application designed to detect and classif
 └── requirements.txt    # Python dependencies
 ```
 
-## Setup and Installation
+## Required Libraries and Dependencies
+The project requires Python 3.8+ and the following core libraries:
+- **Transformers (HuggingFace):** Used for loading the pre-trained BERT model and tokenizer.
+- **PyTorch:** The underlying deep learning framework for model fine-tuning and tensor operations.
+- **Scikit-Learn:** Used for the TF-IDF baseline model, data splitting, and evaluation metrics.
+- **FastAPI & Uvicorn:** Powering the backend REST API for model inference.
+- **Angular:** Used for building the interactive web-based demonstration interface.
 
-### 1. Clone the Repository
+All Python dependencies can be installed via:
 ```bash
-git clone https://github.com/emirn00/hate-speech-detection-bert
-cd hate-speech-detection-bert
-```
-
-### 2. Python Environment (Backend and ML)
-```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run model training (optional if weights exist)
-python src/ml/bert_train.py
 ```
 
-### 3. Frontend Setup
-```bash
-cd src/frontend
-npm install
-ng serve
-```
+## Setup and Running Instructions
 
-## Evaluation and Sample Results
-
-The fine-tuned BERT model outperforms traditional ML baselines in detecting the Hate Speech class, which is often the most challenging due to class imbalance.
-
-### Sample Prediction
-| Input Text | Prediction | Confidence |
-| :--- | :--- | :--- |
-| "I really enjoy the weather today." | Neutral | 99.1% |
-| "You are such a loser, stay away from here." | Offensive | 94.5% |
-| "I hate [Specific Group] and they should leave." | Hate Speech | 88.7% |
-
-### Performance Metrics
-- BERT F1-Score: ~0.91 (Weighted)
-- Baseline F1-Score: ~0.71 (Macro)
-
-## Running the Application
-1. Start the backend:
+### 1. Data Preparation and Training
+To replicate the results or retrain the model, follow this execution order:
+1. **Preprocessing:** Run the script to download (if needed), clean, and split the raw data.
    ```bash
+   python src/ml/preprocessing.py
+   ```
+2. **Training:** Fine-tune the BERT model. Note: This requires a GPU for reasonable training times.
+   ```bash
+   python src/ml/bert_train.py
+   ```
+
+### 2. Running the Full-Stack Application
+1. **Backend:** Start the FastAPI server.
+   ```bash
+   # From the project root
    uvicorn src.backend.main:app --reload
    ```
-2. Start the frontend:
+2. **Frontend:** Start the Angular development server.
    ```bash
    cd src/frontend
+   npm install
    ng serve
    ```
-3. Access the application at http://localhost:4200.
+3. Access the application at `http://localhost:4200`.
 
-## License and Credits
-This project is developed for educational purposes as part of the LLM/NLP coursework. 
-Data source: Davidson et al. (2017) Hate Speech and Offensive Language Dataset.
+## Sample Inputs and Outputs
+The system accepts raw text strings and returns the predicted category along with a confidence score.
+
+| Sample Input | Expected Output | Rationale |
+| :--- | :--- | :--- |
+| "I really enjoy the weather today." | **Neutral** | No hateful or offensive tokens detected. |
+| "This is so stupid, I can't believe it." | **Offensive** | Contains derogatory terms but lacks targeted hate intent. |
+| "I hate [Specific Group] and they should leave." | **Hate Speech** | Contains targeted attack and dehumanizing language. |
+
+## Evaluation Results
+- **BERT F1-Score:** ~0.91 (Weighted)
+- **Baseline (LogReg) F1-Score:** ~0.71 (Macro)
+
+## Credits
+Data source: Davidson et al. (2017) Hate Speech and Offensive Language Dataset. Developed for the LLM Final Project submission.
